@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>LQCD 3Q confinement</title>
+<style>
+  .grid-container {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    background-color: #2196F3;
+    padding: 5px;
+    grid-gap: 5px;
+  }
+
+  .plot {
+    width:100%;
+    display:inline;
+  }
+  
+  textarea {
+    width:99%;
+    height:200px;  
+  }
+</style>
+  <script src="data.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script>
+  
+    var data0,data1,data2,data3,layout;    
+    
+    function all(d) {
+      ret=[[],[],[],[]]
+      k=parseFloat($("#k").val())
+      D=parseFloat($("#D").val())
+      dx=parseFloat($("#dx").val())
+      Rmin=parseFloat($("#Rmin").val())
+      Rmin2=Rmin*Rmin
+      for(var i in d["xx"]) if(d["r2"][i]>Rmin2) {
+        ret[0].push(d["xx"][i])
+        ret[1].push(d["yy"][i])
+        ret[2].push(d["r2"][i])
+      }
+      return ret
+    }
+
+    function right(d) {
+      ret=[[],[]]
+      k=parseFloat($("#k").val())
+      D=parseFloat($("#D").val())
+      dx=parseFloat($("#dx").val())
+      Rmin=parseFloat($("#Rmin").val())
+      Rmin2=Rmin*Rmin
+      s=""
+      for(var i in d["xx"]) if(Math.abs(d["yy"][i]-0.5)<dx) if(d["r2"][i]>Rmin2) {
+        s+="a:"+d["a"][i].toString()+"   ";
+        s+="b:"+d["b"][i].toString()+"   ";
+        s+="c:"+d["c"][i].toString()+"   ";
+        s+="r2:"+d["r2"][i].toString()+"   ";
+        s+="v:"+d["v"][i].toString()+"\n";
+        
+        ret[0].push(d["xx"][i])
+        ret[1].push((d["v"][i]-k*(1/d["a"][i]+1/d["b"][i]+1/d["c"][i])-D)/Math.sqrt(d["r2"][i]))
+      }
+      $("#text1").val(s);
+      return ret
+    }
+    
+    function iso(d) {
+      ret=[[],[]]
+      k=parseFloat($("#k").val())
+      D=parseFloat($("#D").val())
+      dx=parseFloat($("#dx").val())
+      Rmin=parseFloat($("#Rmin").val())
+      Rmin2=Rmin*Rmin
+      s=""
+      for(var i in d["xx"]) if(Math.abs(d["xx"][i])<dx) if(d["r2"][i]>Rmin2) {
+        s+="a:"+d["a"][i].toString()+"   ";
+        s+="b:"+d["b"][i].toString()+"   ";
+        s+="c:"+d["c"][i].toString()+"   ";
+        s+="r2:"+d["r2"][i].toString()+"   ";
+        s+="v:"+d["v"][i].toString()+"\n";
+        ret[0].push(d["yy"][i])
+        ret[1].push((d["v"][i]-k*(1/d["a"][i]+1/d["b"][i]+1/d["c"][i])-D)/Math.sqrt(d["r2"][i]))
+      }
+      $("#text2").val(s);
+      return ret
+    }
+    
+    function init() {
+      $(".plot").height($(".plot").width());
+      
+      trace = {
+        x: tacke["Koma6.0"]["xx"],
+        y: tacke["Koma6.0"]["yy"],
+        mode: 'markers'
+      };
+      dr=right(tacke[$("#dataset").val()]);
+      di=iso(tacke[$("#dataset").val()]);
+      da=all(tacke[$("#dataset").val()]);
+      data0 = [{x:dr[0],y:dr[1],mode: 'markers'}];
+      data1 = [{x:di[0],y:di[1],mode: 'markers'}]
+      data2 = [{x:da[0],y:da[1],mode: 'markers'}]
+      data3 = [{x:da[0],y:da[2],mode: 'markers'}]
+      layout = {};
+
+      Plotly.newPlot('plot0', data0, layout, {showSendToCloud: true});
+      Plotly.newPlot('plot1', data1, layout, {showSendToCloud: true});
+      Plotly.newPlot('plot2', data2, layout, {showSendToCloud: true});
+      Plotly.newPlot('plot3', data3, layout, {showSendToCloud: true});
+    }
+    
+    function changed() {
+      dr=right(tacke[$("#dataset").val()]);
+      di=iso(tacke[$("#dataset").val()]);
+      da=all(tacke[$("#dataset").val()]);
+      
+      console.log($("#dataset").val());
+      data0[0]["x"]=dr[0];
+      data0[0]["y"]=dr[1];
+      data1[0]["x"]=di[0];
+      data1[0]["y"]=di[1];
+      data2[0]["x"]=da[0];
+      data2[0]["y"]=da[1];
+      data3[0]["x"]=da[0];
+      data3[0]["y"]=da[2];
+      
+      Plotly.redraw('plot0');
+      Plotly.redraw('plot1');
+      Plotly.redraw('plot2');
+      Plotly.redraw('plot3');
+    }
+  </script>
+</body>
+</head>
+
+<body onload="init();">
+  Dataset:
+  <select id="dataset" onchange="changed();">
+    <option value="Koma6.0">Koma 6.0</option>
+    <option value="Sakumichi5.8">Sakumichi 5.8</option>
+    <option value="Sakumichi6.0">Sakumichi 6.0</option>
+  <select>
+  dx:<input id="dx" type="number" step="0.001" value="0.1" onchange="changed();">
+  Rmin:<input id="Rmin" type="number" step="0.01" value="0" onchange="changed();">
+  k:<input id="k" type="number" step="0.001" value="-0.10" onchange="changed();">
+  D:<input id="D" type="number" step="0.001" value="1" onchange="changed();">
+  
+  <div class="grid-container">
+  <div class="plot" id="plot0"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div class="plot" id="plot1"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div class="plot" id="plot2"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div class="plot" id="plot3"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div><textarea id=text1 width="100%"></textarea></div>
+  <div><textarea id=text2></textarea></div>
+  </div>
+
+</html>
